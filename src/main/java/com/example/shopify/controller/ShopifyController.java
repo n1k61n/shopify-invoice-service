@@ -1,8 +1,7 @@
 package com.example.shopify.controller;
 
-
-import com.example.shopify.service.EmailService;
 import com.example.shopify.service.InvoiceService;
+import com.example.shopify.service.SendGridEmailService;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -10,28 +9,34 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.nio.file.Path;
+
 @RestController
 @RequiredArgsConstructor
 public class ShopifyController {
 
-
     private final InvoiceService invoiceService;
-    private final EmailService emailService;
-
-
-
+    private final SendGridEmailService sendGridEmailService;
 
     @PostMapping("/shopify/webhook/order-created")
     public ResponseEntity<String> handleOrder(@RequestBody JsonNode payload) {
-        // 1. PDF-i yaradırıq
+
+        // 1️⃣ Order info
         String orderId = payload.path("id").asText();
         String email = payload.path("email").asText();
-        String filePath = "fakturalar/faktura_" + orderId + ".pdf";
 
+        Path pdfPath = Path.of("fakturalar/faktura_" + orderId + ".pdf");
+
+        // 2️⃣ PDF yarat
         invoiceService.generatePdf(payload);
 
-        // 2. Email-i göndəririk
-        emailService.sendInvoiceWithAttachment(email, orderId, filePath);
+        // 3️⃣ Email (SendGrid API)
+        sendGridEmailService.sendInvoiceEmail(
+                email,
+                "Your Invoice #" + orderId,
+                "<h2>Thanks for your order</h2><p>Your invoice is attached.</p>",
+                pdfPath
+        );
 
         return ResponseEntity.ok("Success");
     }

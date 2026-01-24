@@ -37,7 +37,7 @@ public class InvoiceService {
             });
 
             // 4. LOQO FIX: Base64 stringindəki boşluqları və sətir sonlarını təmizləyirik
-            String logoBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."; // Bura öz tam kodunuzu qoyun
+            String logoBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...";
             String cleanLogo = logoBase64.replaceAll("\\s", "");
 
             // 5. XHTML (Strict format)
