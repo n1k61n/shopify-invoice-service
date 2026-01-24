@@ -11,22 +11,22 @@ public class InvoiceService {
 
     private final String FOLDER_PATH = "invoices";
 
-    public void generatePdf(JsonNode payload) {
+    public String generatePdf(JsonNode payload) {
         try {
-            // Extract data from JSON
+            // 1. Məlumatların JSON-dan oxunması
             String orderId = payload.path("id").asText();
             String customerName = payload.path("customer").path("first_name").asText() + " " +
                     payload.path("customer").path("last_name").asText();
             String totalPrice = payload.path("total_price").asText();
             String currency = payload.path("currency").asText("USD");
 
-            // Ensure directory exists
+            // 2. Qovluğun yaradılması
             Path path = Paths.get(FOLDER_PATH);
             if (!Files.exists(path)) {
                 Files.createDirectories(path);
             }
 
-            // Build Table Rows
+            // 3. Cədvəl sətirlərinin yaradılması
             StringBuilder itemsHtml = new StringBuilder();
             payload.path("line_items").forEach(item -> {
                 itemsHtml.append("<tr>")
@@ -36,13 +36,14 @@ public class InvoiceService {
                         .append("</tr>");
             });
 
-            // Base64 Logo (shortened for readability, keep your original string here)
-            String logoBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...";
+            // 4. LOQO FIX: Base64 stringindəki boşluqları və sətir sonlarını təmizləyirik
+            String logoBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."; // Bura öz tam kodunuzu qoyun
+            String cleanLogo = logoBase64.replaceAll("\\s", "");
 
-            // Construct XHTML Content
+            // 5. XHTML (Strict format)
             String htmlContent = "<!DOCTYPE html><html><body style='font-family: sans-serif; margin: 40px; color: #333;'>" +
                     "<div style='text-align: center; margin-bottom: 30px;'>" +
-                    "   <img src='" + logoBase64 + "' style='width: 120px; height: auto;' />" +
+                    "   <img src='" + cleanLogo + "' style='width: 120px; height: auto;' />" +
                     "</div>" +
                     "<div style='border-bottom: 2px solid #444; padding-bottom: 10px; margin-bottom: 20px;'>" +
                     "   <h1 style='margin: 0;'>INVOICE</h1>" +
@@ -67,21 +68,23 @@ public class InvoiceService {
                     "</div>" +
                     "</body></html>";
 
-            // Generate PDF
+            // 6. PDF-in generasiyası
             String fileName = FOLDER_PATH + "/invoice_" + orderId + ".pdf";
             try (OutputStream os = new FileOutputStream(fileName)) {
                 PdfRendererBuilder builder = new PdfRendererBuilder();
                 builder.useFastMode();
-                builder.withHtmlContent(htmlContent, "/");
+                builder.withHtmlContent(htmlContent, "/"); // "/" Base URL loqo üçün vacibdir
                 builder.toStream(os);
                 builder.run();
             }
 
             System.out.println("Success: Invoice saved to " + fileName);
+            return fileName;
 
         } catch (Exception e) {
             System.err.println("Error generating PDF: " + e.getMessage());
             e.printStackTrace();
+            return null;
         }
     }
 }
