@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.nio.file.Path;
-
 @RestController
 @RequiredArgsConstructor
 public class ShopifyController {
@@ -21,34 +20,35 @@ public class ShopifyController {
     private final InvoiceService invoiceService;
     private final SendGridEmailService sendGridEmailService;
     private final ShopifyWebhookVerifier shopifyWebhookVerifier;
+    private final ObjectMapper objectMapper;
 
     @PostMapping("/shopify/webhook/order-created")
     public ResponseEntity<String> handleOrder(
             @RequestHeader("X-Shopify-Hmac-Sha256") String hmacHeader,
             @RequestBody String rawBody
     ) {
+        // 1. İmzalı yoxlama
         if (!shopifyWebhookVerifier.verify(rawBody, hmacHeader)) {
-            return ResponseEntity.status(403).body("Invalid webhook signature");
+            return ResponseEntity.status(403).body("Invalid signature");
         }
 
-        // JSON-u SONRADAN parse edirik
-        JsonNode payload;
         try {
-            payload = new ObjectMapper().readTree(rawBody);
+            // 2. Hazır objectMapper-dən istifadə
+            JsonNode payload = objectMapper.readTree(rawBody);
+
+            // 3. Proseslərin davamı
+            Path pdf = invoiceService.generatePdf(payload);
+            sendGridEmailService.sendInvoiceEmail(
+                    payload.path("email").asText(),
+                    "Your Invoice",
+                    "<h2>Thanks for your order</h2>",
+                    pdf
+            );
+
+            return ResponseEntity.ok("Webhook processed");
+
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Invalid JSON");
+            return ResponseEntity.badRequest().body("Invalid JSON structure");
         }
-
-        // PDF + Email
-        Path pdf = invoiceService.generatePdf(payload);
-
-        sendGridEmailService.sendInvoiceEmail(
-                payload.path("email").asText(),
-                "Your Invoice",
-                "<h2>Thanks for your order</h2>",
-                pdf
-        );
-        return ResponseEntity.ok("Webhook processed");
     }
-
 }
