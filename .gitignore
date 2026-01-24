@@ -33,9 +33,4 @@ build/
 .vscode/
 
 fakturalar/
-src/main/resources/static/images/logo.pnggit init
-                                         git add .
-                                         git commit -m "Initial commit: Shopify Invoice Service with Logo and Email"
-                                         git branch -M main
-                                         git remote add origin https://github.com/istifadəçi_adınız/shopify-invoice-service.git
-                                         git push -u origin main
+src/main/resources/static/images/logo.png
