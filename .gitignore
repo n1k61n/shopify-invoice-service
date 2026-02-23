@@ -34,3 +34,4 @@ build/
 
 fakturalar/
 src/main/resources/static/images/logo.png
+.env
